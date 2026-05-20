@@ -19,24 +19,38 @@ def objective(trial):
         str(params["min_samples_leaf"])
     ]
     
-    # Capture the printed MSE from train.py
+    # Capture the comma-separated metrics string
     result = subprocess.run(cmd, capture_output=True, text=True)
-    mse = float(result.stdout.strip())
-    print(mse)
-    return mse
+    
+    # Split the output string back into individual values
+    metrics = result.stdout.strip().split(",")
+    
+    train_mse = float(metrics[0])
+    test_mse = float(metrics[1])
+    train_mae = float(metrics[2])
+    test_mae = float(metrics[3])
 
-# other alternatives: optuna.samplers.RandomSampler(), optuna.samplers.GridSampler(search_space)
+    # Save extra metrics into the Optuna DB file so they show up on your dashboard
+    trial.set_user_attr("train_mse", train_mse)
+    trial.set_user_attr("train_mae", train_mae)
+    trial.set_user_attr("test_mae", test_mae)
+
+    print(f"Trial {trial.number} -> Test MSE: {test_mse} | Test MAE: {test_mae}")
+    
+    # Return ONLY test_mse so Optuna ignores the others when making predictions
+    return test_mse
+
 sampler = optuna.samplers.TPESampler(
     multivariate=True, 
     seed=42,
 )
 
 study = optuna.create_study(
-    storage="sqlite:///db.sqlite3",  # This saves the data to a file
-    study_name="study-2-multivariate",
+    storage="sqlite:///db.sqlite3",
+    study_name="study-3",
     direction="minimize",
     sampler=sampler,
     load_if_exists=True
 )
-study.optimize(objective, n_trials=100)
+study.optimize(objective, n_trials=20)
 print(f"Best: {study.best_params}")
