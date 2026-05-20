@@ -25,10 +25,17 @@ def objective(trial):
     print(mse)
     return mse
 
+# other alternatives: optuna.samplers.RandomSampler(), optuna.samplers.GridSampler(search_space)
+sampler = optuna.samplers.TPESampler(
+    multivariate=True, 
+    seed=42,
+)
+
 study = optuna.create_study(
     storage="sqlite:///db.sqlite3",  # This saves the data to a file
-    study_name="study-1",
+    study_name="study-2-multivariate",
     direction="minimize",
+    sampler=sampler,
     load_if_exists=True
 )
 study.optimize(objective, n_trials=100)
